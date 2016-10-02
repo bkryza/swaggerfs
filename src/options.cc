@@ -121,8 +121,8 @@ std::shared_ptr<commands::command> cli_options::parse(int argc, char** argv) {
 
     }
     else if(cmd == "forget") {
-      po::options_description add_options("Forget service");
-      add_options.add_options()
+      po::options_description forget_options("Forget service");
+      forget_options.add_options()
           ("help,h", "Prints this help message")
           ("name", "Name of the service instance in the local database");
 
@@ -140,11 +140,11 @@ std::shared_ptr<commands::command> cli_options::parse(int argc, char** argv) {
       /**
        * Parse 'forget' command specific arguments
        */
-      po::store(po::command_line_parser(opts).options(add_options)
+      po::store(po::command_line_parser(opts).options(forget_options)
         .positional(forget_positional_options).allow_unregistered().run(), vm);
 
       if(vm.count("help"))  {   
-        print_usage(add_options, forget_positional_options);
+        print_usage(forget_options, forget_positional_options);
         return std::shared_ptr<commands::command>(new commands::noop());
       } 
 
@@ -153,12 +153,15 @@ std::shared_ptr<commands::command> cli_options::parse(int argc, char** argv) {
       return std::shared_ptr<commands::command>(
                     new commands::forget_service(service_to_forget));
     }
+    /**
+     * Handle 'list' command
+     */
     else if(cmd == "list") {
       /**
        * 'list' command does not expect any options
        */
-      po::options_description add_options("List services");
-      add_options.add_options()
+      po::options_description list_options("List services");
+      list_options.add_options()
           ("help,h", "Prints this help message");
 
       po::positional_options_description list_positional_options;
@@ -175,18 +178,54 @@ std::shared_ptr<commands::command> cli_options::parse(int argc, char** argv) {
       /**
        * Parse 'list' command specific arguments
        */
-      po::store(po::command_line_parser(opts).options(add_options)
+      po::store(po::command_line_parser(opts).options(list_options)
         .allow_unregistered().run(), vm);
 
       if(vm.count("help"))  {   
-        print_usage(add_options, list_positional_options);
+        print_usage(list_options, list_positional_options);
         return std::shared_ptr<commands::command>(new commands::noop());
       } 
 
       return std::shared_ptr<commands::command>(new commands::list_services());
     }
+    /**
+     * Handle 'mount' command
+     */
     else if(cmd == "mount") {
+      po::options_description mount_options("Mount service");
+      mount_options.add_options()
+          ("help,h", "Prints this help message")
+          ("name", "Name of the service to be mounted")
+          ("path", "Path under which the service should be mounted");
 
+      po::positional_options_description mount_positional_options;
+      mount_positional_options.add("name",    1);
+      mount_positional_options.add("path",    1);
+
+      std::vector<std::string> opts 
+        = po::collect_unrecognized(parsed.options, po::include_positional);
+
+      /**
+       * Remove global arguments
+       */
+      opts.erase(opts.begin());
+
+      /**
+       * Parse 'forget' command specific arguments
+       */
+      po::store(po::command_line_parser(opts).options(mount_options)
+        .positional(mount_positional_options).allow_unregistered().run(), vm);
+
+      if(vm.count("help"))  {   
+        print_usage(mount_options, mount_positional_options);
+        return std::shared_ptr<commands::command>(new commands::noop());
+      } 
+
+      std::string service_to_mount = vm["name"].as<std::string>();
+      std::string mount_point = vm["path"].as<std::string>();
+
+      return std::shared_ptr<commands::command>(
+                    new commands::mount_service(service_to_mount, mount_point));
     }
     else if(cmd == "unmount") {
 

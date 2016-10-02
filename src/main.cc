@@ -8,8 +8,12 @@
 
 using namespace swaggerfs;
 
+#include <fuse.h>
 
-void handle_command(service_manager &sm, const commands::command& cmd) {
+extern struct fuse_operations swaggerfs_operations;
+
+
+int handle_command(service_manager &sm, const commands::command& cmd) {
 
   if(std::type_index(typeid(cmd)) 
             == std::type_index(typeid(commands::add_service))) {
@@ -17,6 +21,8 @@ void handle_command(service_manager &sm, const commands::command& cmd) {
      * Add new service to the local database
      */
     sm.add_service(dynamic_cast<const commands::add_service&>(cmd));
+
+    return 0;
   }
   else if(std::type_index(typeid(cmd)) 
               == std::type_index(typeid(commands::forget_service))) {
@@ -24,6 +30,8 @@ void handle_command(service_manager &sm, const commands::command& cmd) {
      * Remove the service from the local database
      */
     sm.forget_service(dynamic_cast<const commands::forget_service&>(cmd).name);
+
+    return 0;
   }
   else if(std::type_index(typeid(cmd)) 
               == std::type_index(typeid(commands::list_services))) {
@@ -33,9 +41,33 @@ void handle_command(service_manager &sm, const commands::command& cmd) {
     for(auto&& service : sm.list_services()) {
       std::cout << service << std::endl;
     }
+
+    return 0;
+  }
+  else if(std::type_index(typeid(cmd)) 
+              == std::type_index(typeid(commands::mount_service))) {
+    /**
+     * Mounts the service in the provided folder
+     */
+    const commands::mount_service& mount_service 
+      = dynamic_cast<const commands::mount_service&>(cmd);
+
+    int argc = 2;
+    const char* argv[2]; 
+    argv[0] = "swaggerfs";
+    argv[1] = mount_service.mount_point.c_str();
+
+    std::cout << "Mounting " << mount_service.name << " under " 
+              << mount_service.mount_point << std::endl;
+
+    return fuse_main(argc, const_cast<char**>(argv), &swaggerfs_operations, NULL);
+
+    //sm.forget_service(dynamic_cast<const commands::forget_service&>(cmd).name);
   }
   else {
     std::cout << "Unknown command" << std::endl;
+
+    return 0;
   }
 
 }
@@ -70,7 +102,6 @@ int main(int argc, char* argv[]) {
    */
   sm.initialize();
 
-  handle_command(sm, *cmd);
+  return handle_command(sm, *cmd);
 
-  return 0;
 }

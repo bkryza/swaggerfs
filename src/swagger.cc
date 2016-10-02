@@ -70,14 +70,10 @@ namespace swaggerfs {
       std::string path = path_object.first;
       pt::ptree operations = path_object.second;
 
-      // std::cout << "Processing path: " << path << std::endl;
-
       for(const pt::ptree::value_type &operation_object : operations) {
 
         std::string method = operation_object.first;
         pt::ptree operation = operation_object.second;
-
-        // std::cout << "\tProcessing method: " << method << std::endl;
 
         /**
          * Check if 'tags' list contains requested tag
@@ -86,7 +82,6 @@ namespace swaggerfs {
         for(const pt::ptree::value_type &tag_object
                                               : operation.get_child("tags")) {
 
-          // std::cout << "\t\tComparing with tag: " << tag_object.second.get_value<std::string>() << std::endl;
           if(tag == tag_object.second.get_value<std::string>())
             operation_has_tag = true;
         }
