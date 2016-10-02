@@ -1,10 +1,12 @@
 #include "service_manager.h"
+#include "swagger.h"
 
 #include <iostream>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+
 
 namespace pt = boost::property_tree;
 namespace bf = boost::filesystem;
@@ -176,7 +178,7 @@ namespace swaggerfs {
 
   std::vector<std::string> service_manager::list_services() {
 
-    auto swaggerfs_home = boost::filesystem::path(getenv("HOME"))/".swaggerfs";
+    auto swaggerfs_home = boost::filesystem::path{getenv("HOME")}/".swaggerfs";
     std::vector<std::string> result;
 
     boost::filesystem::directory_iterator it{swaggerfs_home};
@@ -196,11 +198,30 @@ namespace swaggerfs {
 
     }
     return result;
+    
   }
 
 
   std::shared_ptr<service> service_manager::get_service(
                                                     const std::string& name) {
+    std::shared_ptr<service> result;
+
+    auto swaggerfs_home = boost::filesystem::path{getenv("HOME")}/".swaggerfs";
+    auto service_definition = swaggerfs_home/(name+".sfs");
+    auto service_swagger = swaggerfs_home/(name+".json");
+
+    if(!boost::filesystem::is_regular_file(service_definition))
+      return result;
+
+    pt::ptree service_definition_root;
+    pt::read_json(service_definition.string(), service_definition_root);
+
+    result.reset(new service{});
+    result->name = service_definition_root.get<std::string>("name");
+    result->endpoint = service_definition_root.get<std::string>("endpoint");
+    swagger_parser::parse(result->model, service_swagger.string());
+
+    return result;
 
   }
 

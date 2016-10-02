@@ -3,6 +3,8 @@
 
 #include <string>
 #include <vector>
+#include <boost/property_tree/ptree.hpp>
+
 
 #include "commands.h"
 
@@ -60,6 +62,8 @@ namespace swaggerfs {
     std::shared_ptr<authentication::auth_type> credentials;
 
     std::string swagger_specification_file;
+
+    boost::property_tree::ptree model; 
 
 
     service();

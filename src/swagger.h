@@ -49,19 +49,14 @@ namespace swaggerfs {
 
   class swagger_parser {
 
-    /**
-     * Swagger API model
-     */ 
-    pt::ptree model;
-
   public:
 
+    static void parse(pt::ptree &model, const std::string& file_name);
 
-    void parse(const std::string& file_name);
-
-    std::vector<swagger::tag> get_tags() const;
+    static std::vector<swagger::tag> get_tags(const pt::ptree &model);
     
-    std::vector<swagger::operation> get_operations(const std::string &tag) const;
+    static std::vector<swagger::operation> get_operations(const pt::ptree &model,
+                                                   const std::string &tag);
 
   };
   

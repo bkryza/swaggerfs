@@ -35,7 +35,7 @@ namespace swaggerfs {
     }
   }
 
-  void swagger_parser::parse(const std::string& file_name) {
+  void swagger_parser::parse(pt::ptree &model, const std::string& file_name) {
 
     /**
      * Load the json file in this ptree
@@ -45,7 +45,7 @@ namespace swaggerfs {
   }
 
 
-  std::vector<swagger::tag> swagger_parser::get_tags() const {
+  std::vector<swagger::tag> swagger_parser::get_tags(const pt::ptree &model) {
 
     std::vector<swagger::tag> result;
 
@@ -61,7 +61,7 @@ namespace swaggerfs {
 
 
   std::vector<swagger::operation> 
-  swagger_parser::get_operations(const std::string &tag) const {
+  swagger_parser::get_operations(const pt::ptree &model, const std::string &tag) {
 
     std::vector<swagger::operation> result;
 

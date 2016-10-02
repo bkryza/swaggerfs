@@ -12,6 +12,7 @@ using namespace swaggerfs;
 
 extern struct fuse_operations swaggerfs_operations;
 
+static std::shared_ptr<service> mounted_service;
 
 int handle_command(service_manager &sm, const commands::command& cmd) {
 
@@ -46,23 +47,38 @@ int handle_command(service_manager &sm, const commands::command& cmd) {
   }
   else if(std::type_index(typeid(cmd)) 
               == std::type_index(typeid(commands::mount_service))) {
-    /**
-     * Mounts the service in the provided folder
-     */
+
     const commands::mount_service& mount_service 
       = dynamic_cast<const commands::mount_service&>(cmd);
 
-    int argc = 2;
-    const char* argv[2]; 
+    /**
+     * Load the service from the local database
+     */
+    mounted_service = sm.get_service(mount_service.name);
+
+    if(!mounted_service.get()) {
+      std::cerr << "Cannot load service: " << mount_service.name << std::endl;
+      return 1;
+    }
+
+    /**
+     * Mount the service in the provided folder by starting fuse_main, 
+     * and passing mounted service instance loaded from local database as user 
+     * data
+     */
+    int argc = 4;
+    const char* argv[4]; 
     argv[0] = "swaggerfs";
-    argv[1] = mount_service.mount_point.c_str();
+    argv[1] = "-d";
+    argv[2] = "-f";
+    argv[3] = mount_service.mount_point.c_str();
 
     std::cout << "Mounting " << mount_service.name << " under " 
               << mount_service.mount_point << std::endl;
 
-    return fuse_main(argc, const_cast<char**>(argv), &swaggerfs_operations, NULL);
+    return fuse_main(argc, const_cast<char**>(argv), 
+                     &swaggerfs_operations, mounted_service.get());
 
-    //sm.forget_service(dynamic_cast<const commands::forget_service&>(cmd).name);
   }
   else {
     std::cout << "Unknown command" << std::endl;
