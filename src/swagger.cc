@@ -36,16 +36,34 @@ namespace swaggerfs {
   std::vector<swagger::tag> swagger_parser::get_tags(const pt::ptree &model) {
 
     std::vector<swagger::tag> result;
-
     for(const pt::ptree::value_type &tag_object : model.get_child("tags")) {
-
       result.push_back(swagger::tag{tag_object.second});
-
     }
-
     return result;
 
   }
+
+
+  swagger::tag get_tag(const pt::ptree &model, const std::string &tag) {
+
+    swagger::tag result;
+    for(const pt::ptree::value_type &tag_object : model.get_child("tags")) {
+      result = swagger::tag{tag_object.second};
+      if(result.name == tag)
+        break;
+    }
+    return result;
+  }
+
+
+  bool has_tag(const pt::ptree &model, std::string tag) {
+    std::vector<swagger::tag> tags = swagger_parser::get_tags(model);
+
+    return std::any_of(tags.begin(), tags.end(), 
+              [&](swagger::tag t){ return t.name == tag; });
+
+  }
+    
 
 
   std::vector<swagger::operation> 
@@ -92,5 +110,36 @@ namespace swaggerfs {
 
   }
 
+  swagger::operation 
+  swagger_parser::get_operation(const pt::ptree &model, const std::string &tag,
+                                const std::string &operation_id) {
+
+    std::vector<swagger::operation> operations 
+      = swagger_parser::get_operations(model, tag);
+
+    for(auto operation : operations) {
+      if(operation.id == operation_id)
+        return operation;
+    }
+
+    return {};
+  }
+
+  bool swagger_parser::has_operation(const pt::ptree &model, 
+                                     const std::string &tag,
+                                     const std::string &operation_id) {
+
+    std::vector<swagger::operation> operations 
+      = swagger_parser::get_operations(model, tag);
+
+    return std::any_of(operations.begin(), operations.end(), 
+              [&](swagger::operation o){ return o.id == operation_id; });
+
+  }
+
+
+  /*
+
+   */
 
 }

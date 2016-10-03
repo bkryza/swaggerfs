@@ -33,7 +33,6 @@ BOOST_AUTO_TEST_CASE(swagger_model_parser)
 
     BOOST_CHECK_EQUAL(8, pet_operations.size());
   
-
 }
 
 BOOST_AUTO_TEST_CASE(fuse_paths_parsing)

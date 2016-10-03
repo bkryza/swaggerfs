@@ -14,13 +14,25 @@
 
 #include "swagger.h"
 #include "service_manager.h"
+#include "http_client.h"
 
 static const char *hello_str = "Hello World!\n";
 static const char *hello_path = "/hello";
 
-static const boost::filesystem::path root_path{"/"};
+static const boost::filesystem::path __root_path{"/"};
 
-static const std::vector<std::string> special_files
+/**
+ * These buffers hold current buffers for each operation
+ */
+static std::map<std::string, std::string> __request_buffers;
+static std::map<std::string, std::string> __response_buffers;
+// static std::map<std::string, std::vector<std::string, std::string> > 
+//                                                             __request_headers;
+// static std::map<std::string, std::vector<std::string, std::string> > 
+//                                                             __response_headers;
+
+
+static const std::vector<std::string> __special_files
   = {"REQUEST", "RESPONSE", "REQUEST_HEADERS", "RESPONSE_HEADERS"};
 
 using namespace swaggerfs;
@@ -42,7 +54,7 @@ static int swaggerfs_getattr(const char *c_path, struct stat *stbuf) {
    * Check the length of the path and based on it either handle
    * root directory attributes or 
    */
-  if(boost::filesystem::equivalent(root_path, path)) {
+  if(boost::filesystem::equivalent(__root_path, path)) {
     stbuf->st_mode = S_IFDIR | 0755;
     stbuf->st_nlink = 2;
   }
@@ -75,12 +87,9 @@ static int swaggerfs_getattr(const char *c_path, struct stat *stbuf) {
           /**
            * Check if second element of the path is a valid Swagger 'operation'
            */
-          std::vector<swagger::operation> operations 
-            = swaggerfs::swagger_parser::get_operations(service_definition->model,
-                                                        path_tokens[1]);
-
-          if(std::any_of(operations.begin(), operations.end(), 
-              [&](swagger::operation o){ return o.id == path_tokens[2]; })) {
+          if(swaggerfs::swagger_parser::has_operation(service_definition->model,
+                                                      path_tokens[1], 
+                                                      path_tokens[2])) {
             
             if(path_tokens.size() == 3) {
               stbuf->st_mode = S_IFDIR | 0755;
@@ -90,12 +99,32 @@ static int swaggerfs_getattr(const char *c_path, struct stat *stbuf) {
               /**
                * Check if third element of the path is a valid special file
                */
-              if(std::any_of(special_files.begin(), special_files.end(), 
-                          [&](std::string f){ return f == path_tokens[3]; })) {
+              swaggerfs::swagger::operation op
+                = swaggerfs::swagger_parser::get_operation(service_definition->model,
+                                                           path_tokens[1], 
+                                                           path_tokens[2]);
+              std::string request_file;
+              auto it = std::find(__special_files.begin(), 
+                                  __special_files.end(), 
+                                  path_tokens[3]);
+
+              if(it != __special_files.end()) {
+
+                std::string special_file = *it;
 
                 stbuf->st_mode = S_IFREG | 0666;
                 stbuf->st_nlink = 1;
-                stbuf->st_size = strlen("hello");
+                if(special_file == "REQUEST" && 
+                   op.method == http::method::POST) {
+                  /**
+                   * Fill the request buffer with example if available
+                   */
+                  
+
+                }
+                else {
+                  stbuf->st_size = 0;
+                }
               }
               else {
                 res = -ENOENT;
@@ -141,7 +170,7 @@ static int swaggerfs_readdir(const char *c_path, void *buf,
    * Check the length of the path and based on it either handle
    * root directory attributes or 
    */
-  if(boost::filesystem::equivalent(root_path, path)) {
+  if(boost::filesystem::equivalent(__root_path, path)) {
     filler(buf, ".", NULL, 0);
     filler(buf, "..", NULL, 0);
     /**
@@ -182,7 +211,7 @@ static int swaggerfs_readdir(const char *c_path, void *buf,
        */
       filler(buf, ".", NULL, 0);
       filler(buf, "..", NULL, 0);
-      for(std::string special_file : special_files) {
+      for(std::string special_file : __special_files) {
         struct stat st;
         memset(&st, 0, sizeof(st));
         filler(buf, special_file.c_str(), &st, 0);
@@ -194,15 +223,41 @@ static int swaggerfs_readdir(const char *c_path, void *buf,
   return 0;
 }
 
-static int swaggerfs_open(const char *path, struct fuse_file_info *fi) {
+static int swaggerfs_open(const char *c_path, struct fuse_file_info *fi) {
 
-  //if (strcmp(path, hello_path) != 0)
-  //  return -ENOENT;
+  /**
+   * Extract swaggerfs service definition from fuse context
+   */
+  struct fuse_context *ctx = fuse_get_context();
 
-  // if ((fi->flags & 3) != O_RDONLY)
-  //   return -EACCES;
+  service* service_definition = static_cast<service*>(ctx->private_data);
+  
+  /**
+   * Parse the path
+   */
+  boost::filesystem::path path{c_path};
+  std::vector<std::string> path_tokens;
+  boost::split(path_tokens, path.string(), boost::is_any_of("/"));
+
+  if(path_tokens.size()<4) {
+    return -ENOENT;
+  }
+
+  std::vector<swagger::tag> tags 
+    = swaggerfs::swagger_parser::get_tags(service_definition->model);
+
+  if(!std::any_of(tags.begin(), tags.end(), 
+                      [&](swagger::tag t){ return t.name == path_tokens[1]; })) {
+    /**
+     * No such tag
+     */
+    return -ENOENT;
+  }
+
+
 
   return 0;
+
 }
 
 static int swaggerfs_read(const char *c_path, char *buf, size_t size, 
@@ -246,22 +301,6 @@ static int swaggerfs_read(const char *c_path, char *buf, size_t size,
 
   return size;
 
-  /*
-  size_t len;
-  (void) fi;
-  if(strcmp(path, hello_path) != 0)
-    return -ENOENT;
-
-  len = strlen(hello_str);
-  if (offset < len) {
-    if (offset + size > len)
-      size = len - offset;
-    memcpy(buf, hello_str + offset, size);
-  } else
-    size = 0;
-  */
- 
-  return 0;
 }
 
 struct fuse_operations swaggerfs_operations = {

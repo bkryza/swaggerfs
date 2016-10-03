@@ -46,10 +46,28 @@ namespace swaggerfs {
 
     static void parse(pt::ptree &model, const std::string& file_name);
 
+
+
     static std::vector<swagger::tag> get_tags(const pt::ptree &model);
+
+    static swagger::tag get_tag(const pt::ptree &model, const std::string &tag);
+
+    static bool has_tag(const pt::ptree &model, std::string tag);
     
+
+
     static std::vector<swagger::operation> get_operations(const pt::ptree &model,
-                                                   const std::string &tag);
+                                                          const std::string &tag);
+
+    static swagger::operation get_operation(const pt::ptree &model,
+                                            const std::string &tag,
+                                            const std::string &operation_id);
+
+    static bool has_operation(const pt::ptree &model, 
+                              const std::string &tag,
+                              const std::string &operation_id);
+
+
 
   };
   
