@@ -30,16 +30,13 @@ static int swaggerfs_getattr(const char *c_path, struct stat *stbuf) {
   int res = 0;
 
   memset(stbuf, 0, sizeof(struct stat));
-
   boost::filesystem::path path{c_path};
 
   /**
    * Extract swaggerfs service definition from fuse context
    */
   struct fuse_context *ctx = fuse_get_context();
-
-  service* service_definition
-    = static_cast<service*>(ctx->private_data);
+  service* service_definition = static_cast<service*>(ctx->private_data);
 
   /**
    * Check the length of the path and based on it either handle
@@ -96,8 +93,9 @@ static int swaggerfs_getattr(const char *c_path, struct stat *stbuf) {
               if(std::any_of(special_files.begin(), special_files.end(), 
                           [&](std::string f){ return f == path_tokens[3]; })) {
 
-                stbuf->st_mode = S_IFREG | 0640;
+                stbuf->st_mode = S_IFREG | 0666;
                 stbuf->st_nlink = 1;
+                stbuf->st_size = strlen("hello");
               }
               else {
                 res = -ENOENT;
@@ -120,8 +118,8 @@ static int swaggerfs_getattr(const char *c_path, struct stat *stbuf) {
 
 static int swaggerfs_readdir(const char *c_path, void *buf, 
                              fuse_fill_dir_t filler, off_t offset, 
-                             struct fuse_file_info *fi)
-{
+                             struct fuse_file_info *fi) {
+
   (void) offset;
   (void) fi;
 
@@ -196,20 +194,57 @@ static int swaggerfs_readdir(const char *c_path, void *buf,
   return 0;
 }
 
-static int swaggerfs_open(const char *path, struct fuse_file_info *fi)
-{
+static int swaggerfs_open(const char *path, struct fuse_file_info *fi) {
+
   //if (strcmp(path, hello_path) != 0)
   //  return -ENOENT;
 
-  if ((fi->flags & 3) != O_RDONLY)
-    return -EACCES;
+  // if ((fi->flags & 3) != O_RDONLY)
+  //   return -EACCES;
 
   return 0;
 }
 
-static int swaggerfs_read(const char *path, char *buf, size_t size, off_t offset,
-          struct fuse_file_info *fi)
-{
+static int swaggerfs_read(const char *c_path, char *buf, size_t size, 
+                          off_t offset, struct fuse_file_info *fi) {
+
+  int res = 0;
+
+  boost::filesystem::path path{c_path};
+
+  /**
+   * Open should only work on actual files
+   */
+  std::vector<std::string> path_tokens;
+  boost::split(path_tokens, path.string(), boost::is_any_of("/"));
+
+  if(path_tokens.size() < 4) {
+    /**
+     * We can only read from files which have a path:
+     * /{TAG}/{OPERATION}/{SPECIAL_FILE}
+     */
+    return -ENOENT;
+  }
+
+  /**
+   * Extract swaggerfs service definition from fuse context
+   */
+  struct fuse_context *ctx = fuse_get_context();
+  service* service_definition = static_cast<service*>(ctx->private_data);
+  const char* hello_str = "hello";
+
+  size_t len = strlen(hello_str);
+  if (offset < len) {
+    if (offset + size > len) {
+      size = len - offset;
+    }
+    memcpy(buf, hello_str + offset, size);
+  } 
+  else {
+    size = 0;
+  }
+
+  return size;
 
   /*
   size_t len;

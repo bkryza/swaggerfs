@@ -4,6 +4,8 @@
 #include <vector>
 #include <iostream>
 
+#include "http_client.h"
+
 namespace swaggerfs {
 
   namespace swagger {
@@ -11,7 +13,7 @@ namespace swaggerfs {
       name = o.get<std::string>("name");
     }
 
-    operation::operation(const std::string &path, http_method m, 
+    operation::operation(const std::string &path, swaggerfs::http::method m, 
                          const pt::ptree &o) 
       :path(path), method(m)
     {
@@ -19,20 +21,6 @@ namespace swaggerfs {
       summary = o.get<std::string>("summary");
     }
 
-    http_method operation::method_from_string(const std::string &m) {
-      if(m == "get" || m == "GET")
-        return http_method::GET;
-      else if(m == "post" || m == "POST")
-        return http_method::POST;
-      else if(m == "patch" || m == "PATCH")
-        return http_method::PATCH;      
-      else if(m == "put" || m == "PUT")
-        return http_method::PUT;
-      else if(m == "delete" || m == "DELETE")
-        return http_method::DELETE;
-      else 
-        return http_method::GET;
-    }
   }
 
   void swagger_parser::parse(pt::ptree &model, const std::string& file_name) {
@@ -92,8 +80,9 @@ namespace swaggerfs {
         /**
          * Build operation instance from the property tree
          */
-        http_method hm = swagger::operation::method_from_string(method);
-        result.push_back(swagger::operation{path, hm, operation});
+        swaggerfs::http::method http_method
+          = swaggerfs::http::method_from_string(method);
+        result.push_back(swagger::operation{path, http_method, operation});
 
       }
 

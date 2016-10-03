@@ -66,12 +66,13 @@ int handle_command(service_manager &sm, const commands::command& cmd) {
      * and passing mounted service instance loaded from local database as user 
      * data
      */
-    int argc = 4;
-    const char* argv[4]; 
+    int argc = 5;
+    const char* argv[5]; 
     argv[0] = "swaggerfs";
     argv[1] = "-d";
     argv[2] = "-f";
-    argv[3] = mount_service.mount_point.c_str();
+    argv[3] = "-s";
+    argv[4] = mount_service.mount_point.c_str();
 
     std::cout << "Mounting " << mount_service.name << " under " 
               << mount_service.mount_point << std::endl;

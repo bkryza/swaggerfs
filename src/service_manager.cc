@@ -198,7 +198,7 @@ namespace swaggerfs {
 
     }
     return result;
-    
+
   }
 
 
@@ -210,8 +210,9 @@ namespace swaggerfs {
     auto service_definition = swaggerfs_home/(name+".sfs");
     auto service_swagger = swaggerfs_home/(name+".json");
 
-    if(!boost::filesystem::is_regular_file(service_definition))
+    if(!boost::filesystem::is_regular_file(service_definition)) {
       return result;
+    }
 
     pt::ptree service_definition_root;
     pt::read_json(service_definition.string(), service_definition_root);

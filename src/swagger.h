@@ -5,18 +5,12 @@
 #include <string>
 #include <list>
 
+#include "http_client.h"
 namespace pt = boost::property_tree;
 
 
 namespace swaggerfs {
 
-  enum class http_method {
-    GET,
-    POST,
-    PATCH,
-    PUT,
-    DELETE
-  };
 
   /**
    * This namespace provides a simplified object model of Swagger specification.
@@ -35,13 +29,12 @@ namespace swaggerfs {
     struct operation {
       std::string id;
       std::string path;
-      http_method method;
+      swaggerfs::http::method method;
       std::string summary;
 
       operation() {}
-      operation(const std::string &path, http_method m, const pt::ptree &o);
-
-      static http_method method_from_string(const std::string &m);
+      operation(const std::string &path, swaggerfs::http::method m, 
+                const pt::ptree &o);
     };
 
   }
