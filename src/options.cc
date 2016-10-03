@@ -245,12 +245,10 @@ std::shared_ptr<commands::command> cli_options::parse(int argc, char** argv) {
     po::notify(vm);
 
   } 
-  catch(boost::program_options::required_option& e) 
-  { 
+  catch(boost::program_options::required_option& e) { 
     throw e; 
   } 
-  catch(boost::program_options::error& e) 
-  { 
+  catch(boost::program_options::error& e) { 
     throw e;  
   } 
 

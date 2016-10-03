@@ -61,11 +61,18 @@ namespace swaggerfs {
        */
       boost::asio::streambuf request;
       std::ostream request_stream(&request);
-      request_stream << "GET " << req.path << " HTTP/1.0\r\n";
+      std::string http_method 
+        = swaggerfs::http::method_to_string(req.method);
+
+      request_stream << http_method << " " << req.path << " HTTP/1.0\r\n";
       request_stream << "Host: " << req.host << "\r\n";
-      request_stream << "Accept: */*\r\n";
+      for(auto header : req.headers) {
+        request_stream << header.first << ": " << header.second << "\r\n";
+      }
       request_stream << "Connection: close\r\n\r\n";
 
+      request_stream << req.body;
+      
       /**
        * Send the request.
        */
@@ -85,19 +92,17 @@ namespace swaggerfs {
       std::istream response_stream(&response);
       std::string http_version;
       response_stream >> http_version;
+
+      /** 
+       * Convert the status code to int
+       */
       unsigned int status_code;
-      response_stream >> status_code;
+      response_stream >> res.status_code;
       std::string status_message;
       std::getline(response_stream, status_message);
 
       if(!response_stream || http_version.substr(0, 5) != "HTTP/") {
         std::cout << "Invalid response\n";
-        return;
-      }
-      
-      if(status_code != 200) {
-        std::cout << "Response returned with status code " << status_code << "\n";
-        res.status_code = status_code;
         return;
       }
 
@@ -114,16 +119,20 @@ namespace swaggerfs {
 
       while (std::getline(response_stream, header) && header != "\r") {
         header_tokens.clear();
+
         boost::split(header_tokens, header, boost::is_any_of(":"));
         res.headers.push_back(
-              std::make_pair(header_tokens[0], boost::trim_copy(header_tokens[1])));
+              std::make_pair(header_tokens[0], 
+                             boost::trim_copy(header_tokens[1])));
       }
 
       /**
-       * Write whatever content we already have to output.
+       * Write whatever content we already have to the output.
        */
+      std::ostringstream ss;
+
       if (response.size() > 0) {
-         std::istream(&response) >> res.body;
+         ss << &response;
       }
 
       /**
@@ -133,8 +142,11 @@ namespace swaggerfs {
       while(boost::asio::read(socket, response,
             boost::asio::transfer_at_least(1), error)) {
 
-        std::istream(&response) >> res.body;
+        //std::istream(&response) >> res.body;
+        ss << &response;
       }
+
+      res.body = ss.str();
 
       if (error != boost::asio::error::eof)
         throw boost::system::system_error(error);

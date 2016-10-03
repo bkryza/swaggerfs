@@ -47,8 +47,6 @@ BOOST_AUTO_TEST_CASE(fuse_paths_parsing)
     std::vector<std::string> path_tokens;
     boost::split(path_tokens, path, boost::is_any_of("/"));
 
-    //std::vector<std::string> tags{"pet", "store", "user"};
-
     std::string tag_name = "user";
 
     BOOST_CHECK_EQUAL(2, path_tokens.size());
