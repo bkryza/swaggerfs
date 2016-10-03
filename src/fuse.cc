@@ -70,7 +70,7 @@ static int swaggerfs_getattr(const char *c_path, struct stat *stbuf) {
       if(std::any_of(tags.begin(), tags.end(), 
                     [&](swagger::tag t){ return t.name == path_tokens[1]; })) {
 
-        if(path_tokens.size() == 2)
+        if(path_tokens.size() == 2) {
           stbuf->st_mode = S_IFDIR | 0755;
           stbuf->st_nlink = 3;
         }
@@ -94,7 +94,7 @@ static int swaggerfs_getattr(const char *c_path, struct stat *stbuf) {
                * Check if third element of the path is a valid special file
                */
               if(std::any_of(special_files.begin(), special_files.end(), 
-                         [&](std::string f){ return f == path_tokens[3]; })) {
+                          [&](std::string f){ return f == path_tokens[3]; })) {
 
                 stbuf->st_mode = S_IFREG | 0640;
                 stbuf->st_nlink = 1;
@@ -107,14 +107,13 @@ static int swaggerfs_getattr(const char *c_path, struct stat *stbuf) {
           else {
             res = -ENOENT;
           }
-
         }
       }
       else {
         res = -ENOENT;
       }
-
     }
+  }
 
   return res;
 }
